@@ -14,7 +14,8 @@ import React, {
   useMemo,
   FC,
   forwardRef,
-  useImperativeHandle
+  useImperativeHandle, ReactNode,
+  PropsWithChildren, ExoticComponent
 } from "react";
 import {
   Animated,
@@ -53,6 +54,7 @@ type Props = {
   HeaderComponent?: ComponentType<{ imageIndex: number }>;
   FooterComponent?: ComponentType<{ imageIndex: number }>;
   headerAndFooterAnimation?: "slide" | "fade";
+  ContentWrapper?: ExoticComponent<{ children?: ReactNode }>;
 };
 
 const DEFAULT_ANIMATION_TYPE = "fade";
@@ -85,6 +87,7 @@ const ImageViewing = forwardRef<ImageViewingRef, Props>(({
   HeaderComponent,
   FooterComponent,
   headerAndFooterAnimation = DEFAULT_HEADER_FOOTER_ANIMATION,
+  ContentWrapper
 }, ref) => {
   const imageList = useRef<VirtualizedList<ImageSource>>(null);
   const [opacity, onRequestCloseEnhanced] = useRequestClose(onRequestClose);
@@ -148,6 +151,8 @@ const ImageViewing = forwardRef<ImageViewingRef, Props>(({
     toggleBarsVisible();
   }, [onPress, toggleBarsVisible]);
 
+  const ContainerRoot = useMemo(() =>  ContentWrapper ?? React.Fragment, [ContentWrapper]);
+
   if (!visible) {
     return null;
   }
@@ -162,67 +167,69 @@ const ImageViewing = forwardRef<ImageViewingRef, Props>(({
       supportedOrientations={["portrait"]}
       hardwareAccelerated
     >
-      <StatusBarManager presentationStyle={presentationStyle} />
-      <View style={[styles.container, { opacity, backgroundColor }]}>
-        <Animated.View style={[styles.header, headerAnimation]}>
-          {typeof HeaderComponent !== "undefined" ? (
-            React.createElement(HeaderComponent, {
-              imageIndex: currentImageIndex,
-            })
-          ) : (
-            <ImageDefaultHeader onRequestClose={onRequestCloseEnhanced} />
-          )}
-        </Animated.View>
-        <VirtualizedList
-          ref={imageList}
-          data={images}
-          horizontal
-          pagingEnabled
-          windowSize={2}
-          initialNumToRender={1}
-          maxToRenderPerBatch={1}
-          showsHorizontalScrollIndicator={false}
-          showsVerticalScrollIndicator={false}
-          initialScrollIndex={imageIndex}
-          getItem={(_, index) => images[index]}
-          getItemCount={() => images.length}
-          getItemLayout={(_, index) => ({
-            length: SCREEN_WIDTH,
-            offset: SCREEN_WIDTH * index,
-            index,
-          })}
-          renderItem={({ item: imageSrc }) => (
-            <ImageItem
-              onZoom={onZoom}
-              imageSrc={imageSrc}
-              onRequestClose={onRequestCloseEnhanced}
-              onPress={onPressHandler}
-              onLongPress={onLongPress}
-              delayLongPress={delayLongPress}
-              swipeToCloseEnabled={swipeToCloseEnabled}
-              doubleTapToZoomEnabled={doubleTapToZoomEnabled}
-            />
-          )}
-          onMomentumScrollEnd={onScroll}
-          //@ts-ignore
-          keyExtractor={(imageSrc, index) =>
-            keyExtractor
-              ? keyExtractor(imageSrc, index)
-              : typeof imageSrc === "number"
-              ? `${imageSrc}`
-              : imageSrc.uri
-          }
-        />
-        {typeof FooterComponent !== "undefined" && (
-          <Animated.View
-            style={[styles.footer, footerAnimation]}
-          >
-            {React.createElement(FooterComponent, {
-              imageIndex: currentImageIndex,
-            })}
+      <StatusBarManager presentationStyle={presentationStyle}/>
+      <ContainerRoot>
+        <View style={[styles.container, {opacity, backgroundColor}]}>
+          <Animated.View style={[styles.header, headerAnimation]}>
+            {typeof HeaderComponent !== "undefined" ? (
+              React.createElement(HeaderComponent, {
+                imageIndex: currentImageIndex,
+              })
+            ) : (
+              <ImageDefaultHeader onRequestClose={onRequestCloseEnhanced}/>
+            )}
           </Animated.View>
-        )}
-      </View>
+          <VirtualizedList
+            ref={imageList}
+            data={images}
+            horizontal
+            pagingEnabled
+            windowSize={2}
+            initialNumToRender={1}
+            maxToRenderPerBatch={1}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+            initialScrollIndex={imageIndex}
+            getItem={(_, index) => images[index]}
+            getItemCount={() => images.length}
+            getItemLayout={(_, index) => ({
+              length: SCREEN_WIDTH,
+              offset: SCREEN_WIDTH * index,
+              index,
+            })}
+            renderItem={({item: imageSrc}) => (
+              <ImageItem
+                onZoom={onZoom}
+                imageSrc={imageSrc}
+                onRequestClose={onRequestCloseEnhanced}
+                onPress={onPressHandler}
+                onLongPress={onLongPress}
+                delayLongPress={delayLongPress}
+                swipeToCloseEnabled={swipeToCloseEnabled}
+                doubleTapToZoomEnabled={doubleTapToZoomEnabled}
+              />
+            )}
+            onMomentumScrollEnd={onScroll}
+            //@ts-ignore
+            keyExtractor={(imageSrc, index) =>
+              keyExtractor
+                ? keyExtractor(imageSrc, index)
+                : typeof imageSrc === "number"
+                  ? `${imageSrc}`
+                  : imageSrc.uri
+            }
+          />
+          {typeof FooterComponent !== "undefined" && (
+            <Animated.View
+              style={[styles.footer, footerAnimation]}
+            >
+              {React.createElement(FooterComponent, {
+                imageIndex: currentImageIndex,
+              })}
+            </Animated.View>
+          )}
+        </View>
+      </ContainerRoot>
     </Modal>
   );
 });
